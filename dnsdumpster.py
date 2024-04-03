@@ -718,7 +718,7 @@ def clean_domains(domain):
             domain_list.append(match.string)
     return domain_list
     
-def main(domain):
+def process_domain(domain):
     bruteforce_list = set()
     search_list = set()
 
@@ -793,8 +793,30 @@ def main(domain):
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(prog="Module to dump all dns records of a given domain")
-    parser.add_argument('-d', '--d', help='Help', required=True)
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-d', '--domain', help='Domain')
+    group.add_argument('-f', '--file', help='File containing domain names, one per line')
+    parser.add_argument('-o', '--output', help='Output folder path', default='dnsdumpster-output')
     args = parser.parse_args()
-    
-    subs = main(args.d)
-    print(json.dumps(subs, indent=4, sort_keys=True))
+
+    if not os.path.exists(args.output):
+        os.makedirs(args.output)
+
+    if args.file:
+        with open(args.file, 'r') as file:
+            domains = file.readlines()
+            for domain in domains:
+                domain = domain.strip()
+                subs = process_domain(domain)
+                output_file = os.path.join(args.output, f"{domain.strip()}_output.json")
+                print(json.dumps(subs, indent=4, sort_keys=True))
+                with open(output_file, 'w') as output:
+                    json.dump(subs, output, indent=4, sort_keys=True)
+    elif args.domain:
+        subs = process_domain(args.domain)
+        output_file = os.path.join(args.output, f"{args.domain}_output.json")
+        print(json.dumps(subs, indent=4, sort_keys=True))
+        with open(output_file, 'w') as output:
+            json.dump(subs, output, indent=4, sort_keys=True)
+    else:
+        parser.print_help()
